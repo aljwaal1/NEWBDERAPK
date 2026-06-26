@@ -44,9 +44,15 @@ jobs:
               encoding='utf-8'
           )
 
-          # Remove deprecated/unsupported LinearProgressIndicator minHeight if any old file remained.
+          # Fix invalid Container minHeight if any old file remained.
           p = Path('lib/main.dart')
           s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              '      minHeight: 320,\n      padding: const EdgeInsets.all(18),',
+              '      constraints: const BoxConstraints(minHeight: 320),\n      padding: const EdgeInsets.all(18),'
+          )
+
+          # Remove deprecated/unsupported LinearProgressIndicator minHeight if any old file remained.
           s = re.sub(r'^\s*minHeight\s*:\s*12\s*,\s*$\n?', '', s, flags=re.MULTILINE)
           p.write_text(s, encoding='utf-8')
           PY

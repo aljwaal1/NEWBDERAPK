@@ -422,7 +422,7 @@ class HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      minHeight: 320,
+      constraints: const BoxConstraints(minHeight: 320),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(34),

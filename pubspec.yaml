@@ -1,7 +1,7 @@
 name: badr_world_native
-description: Native Android Flutter app for Badr World.
+description: Badr World Native Android rich edition.
 publish_to: 'none'
-version: 3.0.0+3
+version: 6.0.0+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -11,9 +11,12 @@ dependencies:
     sdk: flutter
   flutter_tts: ^4.0.2
   shared_preferences: ^2.2.3
-
-flutter:
-  uses-material-design: true
+  record: ^5.1.2
+  audioplayers: ^6.0.0
+  path_provider: ^2.1.3
 
 dev_dependencies:
   flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

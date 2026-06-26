@@ -11,100 +11,47 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
-
-      - name: Prepare Android project
+      - name: Prepare Android
         run: |
           flutter create --platforms=android --org com.explapp .
           rm -rf test
-
-      - name: Defensive source fixes
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          # Avoid analysis_options include issue on CI.
-          Path('analysis_options.yaml').write_text(
-              'analyzer:\n  exclude:\n    - build/**\n\nlinter:\n  rules: {}\n',
-              encoding='utf-8'
-          )
-
-          # Fix invalid Container minHeight if any old file remained.
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace(
-              '      minHeight: 320,\n      padding: const EdgeInsets.all(18),',
-              '      constraints: const BoxConstraints(minHeight: 320),\n      padding: const EdgeInsets.all(18),'
-          )
-
-          # Remove deprecated/unsupported LinearProgressIndicator minHeight if any old file remained.
-          s = re.sub(r'^\s*minHeight\s*:\s*12\s*,\s*$\n?', '', s, flags=re.MULTILINE)
-          p.write_text(s, encoding='utf-8')
-          PY
-
-      - name: Patch Android
-        run: |
           python3 - <<'PY'
           from pathlib import Path
           for p in [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]:
-              if not p.exists():
-                  continue
-              s = p.read_text()
-              s = s.replace('applicationId "com.explapp.badr_world_native"', 'applicationId "com.explapp.badrworld"')
-              s = s.replace('applicationId = "com.explapp.badr_world_native"', 'applicationId = "com.explapp.badrworld"')
-              s = s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
-              s = s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
-              s = s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
-              s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
-              p.write_text(s)
-          manifest = Path('android/app/src/main/AndroidManifest.xml')
-          if manifest.exists():
-              s = manifest.read_text()
-              s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
-              s = s.replace('android:label="badr_world_native_android_v3"', 'android:label="عالم بدر"')
-              manifest.write_text(s)
+              if p.exists():
+                  s=p.read_text()
+                  s=s.replace('applicationId "com.explapp.badr_world_native"', 'applicationId "com.explapp.badrworld"')
+                  s=s.replace('applicationId = "com.explapp.badr_world_native"', 'applicationId = "com.explapp.badrworld"')
+                  s=s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
+                  s=s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
+                  s=s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
+                  s=s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
+                  p.write_text(s)
+          m=Path('android/app/src/main/AndroidManifest.xml')
+          if m.exists():
+              s=m.read_text()
+              s=s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
+              if 'android.permission.RECORD_AUDIO' not in s:
+                  s=s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">','<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>')
+              m.write_text(s)
           PY
-
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Build APK
-        run: flutter build apk --release --no-tree-shake-icons
-
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter build apk --release --no-tree-shake-icons
       - name: Copy APK
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/badr.apk
-          cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل APK
-
-          رابط مباشر بعد نجاح GitHub Actions:
-
-          https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk
-
-          أو من داخل المستودع:
-
-          apk/badr.apk
-          EOF
-
+          echo "https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk" > DOWNLOAD_APK.md
       - name: Commit APK
         run: |
           git config --global user.name "github-actions"

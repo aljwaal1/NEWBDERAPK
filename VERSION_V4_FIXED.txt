@@ -1,0 +1,2 @@
+Badr World Native Android V4 Fixed
+Fixes minHeight error and analysis_options flutter_lints warning.

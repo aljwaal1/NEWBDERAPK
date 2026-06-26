@@ -32,6 +32,25 @@ jobs:
           flutter create --platforms=android --org com.explapp .
           rm -rf test
 
+      - name: Defensive source fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Avoid analysis_options include issue on CI.
+          Path('analysis_options.yaml').write_text(
+              'analyzer:\n  exclude:\n    - build/**\n\nlinter:\n  rules: {}\n',
+              encoding='utf-8'
+          )
+
+          # Remove deprecated/unsupported LinearProgressIndicator minHeight if any old file remained.
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          s = re.sub(r'^\s*minHeight\s*:\s*12\s*,\s*$\n?', '', s, flags=re.MULTILINE)
+          p.write_text(s, encoding='utf-8')
+          PY
+
       - name: Patch Android
         run: |
           python3 - <<'PY'
@@ -51,6 +70,7 @@ jobs:
           if manifest.exists():
               s = manifest.read_text()
               s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
+              s = s.replace('android:label="badr_world_native_android_v3"', 'android:label="عالم بدر"')
               manifest.write_text(s)
           PY
 

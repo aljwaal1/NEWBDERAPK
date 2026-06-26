@@ -961,12 +961,14 @@ class _StoriesPageState extends State<StoriesPage> {
               const SizedBox(height: 12),
               SoundButton.arabic(onTap: () => widget.speakArabic(story.lines[lineIndex])),
               const SizedBox(height: 12),
-              LinearProgressIndicator(
-                value: (lineIndex + 1) / story.lines.length,
-                minHeight: 12,
-                borderRadius: BorderRadius.circular(999),
-                backgroundColor: const Color(0xFFD8ECFF),
-                color: const Color(0xFF20C46B),
+              SizedBox(
+                height: 12,
+                child: LinearProgressIndicator(
+                  value: (lineIndex + 1) / story.lines.length,
+                  borderRadius: BorderRadius.circular(999),
+                  backgroundColor: const Color(0xFFD8ECFF),
+                  color: const Color(0xFF20C46B),
+                ),
               ),
               const SizedBox(height: 12),
               Row(

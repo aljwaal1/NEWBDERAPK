@@ -1,9 +1,5 @@
 # تحميل APK
 
-بعد تشغيل GitHub Actions سيظهر ملف التطبيق هنا:
+بعد رفع المشروع وتشغيل GitHub Actions سيظهر الملف هنا:
 
-`apk/badr.apk`
-
-الرابط المباشر بعد البناء:
-
-https://github.com/aljwaal1/bdergpt/raw/main/apk/badr.apk
+apk/badr.apk

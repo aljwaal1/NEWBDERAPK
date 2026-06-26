@@ -1,6 +1,7 @@
-name: badr_gpt
-version: 1.0.0+1
+name: badr_world_native
+description: Native Android Flutter app for Badr World.
 publish_to: 'none'
+version: 3.0.0+3
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -8,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_tts: ^4.0.2
+  shared_preferences: ^2.2.3
 
 flutter:
   uses-material-design: true

@@ -13,45 +13,149 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+
       - name: Prepare Android
         run: |
           flutter create --platforms=android --org com.explapp .
           rm -rf test
+
           python3 - <<'PY'
           from pathlib import Path
+
           for p in [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]:
               if p.exists():
-                  s=p.read_text()
-                  s=s.replace('applicationId "com.explapp.badr_world_native"', 'applicationId "com.explapp.badrworld"')
-                  s=s.replace('applicationId = "com.explapp.badr_world_native"', 'applicationId = "com.explapp.badrworld"')
-                  s=s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
-                  s=s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
-                  s=s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
-                  s=s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
+                  s = p.read_text()
+                  s = s.replace('applicationId "com.explapp.badr_world_native"', 'applicationId "com.explapp.badrworld"')
+                  s = s.replace('applicationId = "com.explapp.badr_world_native"', 'applicationId = "com.explapp.badrworld"')
+                  s = s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
+                  s = s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
+                  s = s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
+                  s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
                   p.write_text(s)
-          m=Path('android/app/src/main/AndroidManifest.xml')
-          if m.exists():
-              s=m.read_text()
-              s=s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          if manifest.exists():
+              s = manifest.read_text()
+              s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
+              s = s.replace('android:label="badr_world_native_android_v6_rich"', 'android:label="عالم بدر"')
               if 'android.permission.RECORD_AUDIO' not in s:
-                  s=s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">','<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>')
-              m.write_text(s)
+                  s = s.replace(
+                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>'
+                  )
+              manifest.write_text(s)
           PY
+
+          mkdir -p android/app/src/main/kotlin/com/explapp/badr_world_native
+          cat > android/app/src/main/kotlin/com/explapp/badr_world_native/MainActivity.kt <<'EOF'
+          package com.explapp.badr_world_native
+
+          import android.Manifest
+          import android.content.pm.PackageManager
+          import android.media.MediaRecorder
+          import android.os.Build
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
+
+          class MainActivity: FlutterActivity() {
+              private val channelName = "badr.audio/recorder"
+              private var recorder: MediaRecorder? = null
+
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+                      when (call.method) {
+                          "ensurePermission" -> {
+                              if (hasRecordPermission()) {
+                                  result.success(true)
+                              } else {
+                                  if (Build.VERSION.SDK_INT >= 23) {
+                                      requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 7711)
+                                  }
+                                  result.success(false)
+                              }
+                          }
+                          "start" -> {
+                              val path = call.argument<String>("path")
+                              if (path == null) {
+                                  result.success(false)
+                                  return@setMethodCallHandler
+                              }
+                              if (!hasRecordPermission()) {
+                                  if (Build.VERSION.SDK_INT >= 23) {
+                                      requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 7711)
+                                  }
+                                  result.success(false)
+                                  return@setMethodCallHandler
+                              }
+                              try {
+                                  recorder?.release()
+                                  recorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else MediaRecorder()
+                                  recorder?.apply {
+                                      setAudioSource(MediaRecorder.AudioSource.MIC)
+                                      setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                                      setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                      setAudioEncodingBitRate(96000)
+                                      setAudioSamplingRate(44100)
+                                      setOutputFile(path)
+                                      prepare()
+                                      start()
+                                  }
+                                  result.success(true)
+                              } catch (e: Exception) {
+                                  try { recorder?.release() } catch (_: Exception) {}
+                                  recorder = null
+                                  result.success(false)
+                              }
+                          }
+                          "stop" -> {
+                              try {
+                                  recorder?.stop()
+                              } catch (_: Exception) {}
+                              try {
+                                  recorder?.release()
+                              } catch (_: Exception) {}
+                              recorder = null
+                              result.success(true)
+                          }
+                          else -> result.notImplemented()
+                      }
+                  }
+              }
+
+              private fun hasRecordPermission(): Boolean {
+                  return if (Build.VERSION.SDK_INT >= 23) {
+                      checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                  } else {
+                      true
+                  }
+              }
+          }
+          EOF
+
       - run: flutter pub get
+
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - run: flutter build apk --release --no-tree-shake-icons
+
       - name: Copy APK
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/badr.apk
           echo "https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk" > DOWNLOAD_APK.md
+
       - name: Commit APK
         run: |
           git config --global user.name "github-actions"

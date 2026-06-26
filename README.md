@@ -1,13 +1,16 @@
-# عالم بدر Native Android V6 Rich
+# عالم بدر Native Android V7 Native Record
 
 نسخة Flutter Native وليست WebView.
 
-الجديد:
-- زر تسجيل عربي حقيقي لكل كلمة.
-- تشغيل التسجيل العربي من ملف صوتي سريع بدل انتظار TTS.
-- نطق عربي احتياطي إذا لا يوجد تسجيل.
-- نطق English منفصل.
-- واجهة أغنى: خريطة عوالم، ألعاب، قصص، تقدم الطفل.
+## إصلاح مهم
+تم إزالة مكتبة `record` لأنها سببت تعارض `record_linux` في GitHub Actions.
 
-APK:
+## التسجيل العربي
+التسجيل الآن يتم Native Android عبر Kotlin + MethodChannel:
+- زر تسجيل عربي حقيقي.
+- حفظ ملف m4a داخل الجهاز.
+- تشغيل التسجيل مباشرة عبر audioplayers.
+- نطق عربي احتياطي إذا لا يوجد تسجيل.
+
+## APK
 https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk

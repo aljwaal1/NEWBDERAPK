@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const BadrApp());
@@ -82,8 +81,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final FlutterTts tts = FlutterTts();
-  final AudioRecorder rec = AudioRecorder();
   final AudioPlayer player = AudioPlayer();
+  static const MethodChannel recorderChannel = MethodChannel('badr.audio/recorder');
   int tab = 0, stars = 0, games = 0;
   final Set<String> learned = {}, recorded = {};
   bool recording = false;
@@ -150,30 +149,44 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> startRecord(Word w) async {
-    if (!await rec.hasPermission()) {
-      msg('اسمح للتطبيق باستخدام الميكروفون');
-      return;
+    try {
+      final allowed = await recorderChannel.invokeMethod<bool>('ensurePermission') ?? false;
+      if (!allowed) {
+        msg('اسمح للتطبيق باستخدام الميكروفون ثم اضغط التسجيل مرة أخرى');
+        return;
+      }
+      final p = await recPath(w.id);
+      await player.stop();
+      await tts.stop();
+      final started = await recorderChannel.invokeMethod<bool>('start', {'path': p}) ?? false;
+      if (!started) {
+        msg('تعذر بدء التسجيل');
+        return;
+      }
+      setState(() { recording = true; recordingId = w.id; });
+      HapticFeedback.mediumImpact();
+    } catch (_) {
+      msg('تعذر بدء التسجيل');
     }
-    final p = await recPath(w.id);
-    await player.stop();
-    await tts.stop();
-    await rec.start(const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 96000, sampleRate: 44100), path: p);
-    setState(() { recording = true; recordingId = w.id; });
-    HapticFeedback.mediumImpact();
   }
 
   Future<void> stopRecord(Word w) async {
-    await rec.stop();
-    setState(() {
-      recording = false;
-      recordingId = null;
-      recorded.add(w.id);
-      stars += 2;
-    });
-    await save();
-    msg('تم حفظ التسجيل العربي ⭐');
-    final p = await recPath(w.id);
-    if (File(p).existsSync()) await player.play(DeviceFileSource(p));
+    try {
+      await recorderChannel.invokeMethod('stop');
+      setState(() {
+        recording = false;
+        recordingId = null;
+        recorded.add(w.id);
+        stars += 2;
+      });
+      await save();
+      msg('تم حفظ التسجيل العربي ⭐');
+      final p = await recPath(w.id);
+      if (File(p).existsSync()) await player.play(DeviceFileSource(p));
+    } catch (_) {
+      setState(() { recording = false; recordingId = null; });
+      msg('تعذر حفظ التسجيل');
+    }
   }
 
   void doneWord(Word w) {
@@ -190,7 +203,6 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
-    rec.dispose();
     player.dispose();
     tts.stop();
     super.dispose();

@@ -1,16 +1,20 @@
-# عالم بدر Native Android V7 Native Record
+# عالم بدر APK Native
 
-نسخة Flutter Native وليست WebView.
+نسخة Android Native من الصفر، وليست WebView.
 
-## إصلاح مهم
-تم إزالة مكتبة `record` لأنها سببت تعارض `record_linux` في GitHub Actions.
+## الموجود في النسخة
 
-## التسجيل العربي
-التسجيل الآن يتم Native Android عبر Kotlin + MethodChannel:
-- زر تسجيل عربي حقيقي.
-- حفظ ملف m4a داخل الجهاز.
-- تشغيل التسجيل مباشرة عبر audioplayers.
-- نطق عربي احتياطي إذا لا يوجد تسجيل.
+- تطبيق Flutter Native كامل.
+- واجهة عربية RTL للأطفال.
+- عوالم تعليمية: الحيوانات، الطعام، وسائل النقل، الحروف، الألوان، الأشكال.
+- نطق عربي وإنجليزي.
+- تسجيل صوت عربي حقيقي عبر Android Native MethodChannel.
+- حفظ التسجيل داخل الجهاز بصيغة m4a.
+- ألعاب تعليمية.
+- قصص قصيرة.
+- صفحة تقدم الطفل.
+- GitHub Actions يبني APK مباشرة.
 
-## APK
+## رابط APK بعد نجاح GitHub Actions
+
 https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk

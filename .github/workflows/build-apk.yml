@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +24,7 @@ jobs:
         with:
           channel: stable
 
-      - name: Prepare Android
+      - name: Prepare Android project
         run: |
           flutter create --platforms=android --org com.explapp .
           rm -rf test
@@ -32,25 +33,30 @@ jobs:
           from pathlib import Path
 
           for p in [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]:
-              if p.exists():
-                  s = p.read_text()
-                  s = s.replace('applicationId "com.explapp.badr_world_native"', 'applicationId "com.explapp.badrworld"')
-                  s = s.replace('applicationId = "com.explapp.badr_world_native"', 'applicationId = "com.explapp.badrworld"')
-                  s = s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
-                  s = s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
-                  s = s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
-                  s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
-                  p.write_text(s)
+              if not p.exists():
+                  continue
+              s = p.read_text()
+
+              replacements = {
+                  'applicationId "com.explapp.badr_world_native"': 'applicationId "com.explapp.badrworld"',
+                  'applicationId = "com.explapp.badr_world_native"': 'applicationId = "com.explapp.badrworld"',
+                  'minSdkVersion flutter.minSdkVersion': 'minSdkVersion 24',
+                  'minSdk = flutter.minSdkVersion': 'minSdk = 24',
+                  'targetSdkVersion flutter.targetSdkVersion': 'targetSdkVersion 35',
+                  'targetSdk = flutter.targetSdkVersion': 'targetSdk = 35',
+              }
+              for old, new in replacements.items():
+                  s = s.replace(old, new)
+              p.write_text(s)
 
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           if manifest.exists():
               s = manifest.read_text()
               s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
-              s = s.replace('android:label="badr_world_native_android_v6_rich"', 'android:label="عالم بدر"')
               if 'android.permission.RECORD_AUDIO' not in s:
                   s = s.replace(
                       '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
-                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>'
+                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>'
                   )
               manifest.write_text(s)
           PY
@@ -100,7 +106,7 @@ jobs:
                                   return@setMethodCallHandler
                               }
                               try {
-                                  recorder?.release()
+                                  try { recorder?.release() } catch (_: Exception) {}
                                   recorder = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else MediaRecorder()
                                   recorder?.apply {
                                       setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -120,12 +126,8 @@ jobs:
                               }
                           }
                           "stop" -> {
-                              try {
-                                  recorder?.stop()
-                              } catch (_: Exception) {}
-                              try {
-                                  recorder?.release()
-                              } catch (_: Exception) {}
+                              try { recorder?.stop() } catch (_: Exception) {}
+                              try { recorder?.release() } catch (_: Exception) {}
                               recorder = null
                               result.success(true)
                           }
@@ -144,22 +146,29 @@ jobs:
           }
           EOF
 
-      - run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - run: flutter build apk --release --no-tree-shake-icons
+      - name: Build release APK
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Copy APK
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/badr.apk
-          echo "https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk" > DOWNLOAD_APK.md
+          cat > DOWNLOAD_APK.md <<'EOF'
+          # تحميل تطبيق عالم بدر
+
+          https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk
+          EOF
 
       - name: Commit APK
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add apk/badr.apk DOWNLOAD_APK.md
-          git commit -m "Update APK" || echo "No changes"
+          git commit -m "Update Badr APK" || echo "No APK changes"
           git push

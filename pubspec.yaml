@@ -1,7 +1,7 @@
 name: badr_world_native
-description: Native Flutter Android APK for عالم بدر. No WebView.
+description: A new stunning native Flutter Android APK for عالم بدر. No WebView.
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

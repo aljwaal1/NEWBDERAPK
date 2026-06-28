@@ -11,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -32,37 +31,30 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          for p in [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]:
-              if not p.exists():
+          # Make Android settings stable for direct APK builds.
+          for path in [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]:
+              if not path.exists():
                   continue
-              s = p.read_text()
-
-              replacements = {
-                  'applicationId "com.explapp.badr_world_native"': 'applicationId "com.explapp.badrworld"',
-                  'applicationId = "com.explapp.badr_world_native"': 'applicationId = "com.explapp.badrworld"',
-                  'minSdkVersion flutter.minSdkVersion': 'minSdkVersion 24',
-                  'minSdk = flutter.minSdkVersion': 'minSdk = 24',
-                  'targetSdkVersion flutter.targetSdkVersion': 'targetSdkVersion 35',
-                  'targetSdk = flutter.targetSdkVersion': 'targetSdk = 35',
-              }
-              for old, new in replacements.items():
-                  s = s.replace(old, new)
-              p.write_text(s)
+              s = path.read_text()
+              s = s.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 24')
+              s = s.replace('minSdk = flutter.minSdkVersion', 'minSdk = 24')
+              s = s.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 35')
+              s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 35')
+              path.write_text(s)
 
           manifest = Path('android/app/src/main/AndroidManifest.xml')
-          if manifest.exists():
-              s = manifest.read_text()
-              s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
-              if 'android.permission.RECORD_AUDIO' not in s:
-                  s = s.replace(
-                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
-                      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>'
-                  )
-              manifest.write_text(s)
+          s = manifest.read_text()
+          s = s.replace('android:label="badr_world_native"', 'android:label="عالم بدر"')
+          if 'android.permission.RECORD_AUDIO' not in s:
+              s = s.replace(
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />'
+              )
+          manifest.write_text(s)
           PY
 
           mkdir -p android/app/src/main/kotlin/com/explapp/badr_world_native
-          cat > android/app/src/main/kotlin/com/explapp/badr_world_native/MainActivity.kt <<'EOF'
+          cat > android/app/src/main/kotlin/com/explapp/badr_world_native/MainActivity.kt <<'EOF_KOTLIN'
           package com.explapp.badr_world_native
 
           import android.Manifest
@@ -119,7 +111,7 @@ jobs:
                                       start()
                                   }
                                   result.success(true)
-                              } catch (e: Exception) {
+                              } catch (_: Exception) {
                                   try { recorder?.release() } catch (_: Exception) {}
                                   recorder = null
                                   result.success(false)
@@ -144,7 +136,7 @@ jobs:
                   }
               }
           }
-          EOF
+          EOF_KOTLIN
 
       - name: Get dependencies
         run: flutter pub get
@@ -160,7 +152,7 @@ jobs:
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/badr.apk
           cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل تطبيق عالم بدر
+          # عالم بدر APK
 
           https://github.com/aljwaal1/NEWBDERAPK/raw/main/apk/badr.apk
           EOF
@@ -170,5 +162,5 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add apk/badr.apk DOWNLOAD_APK.md
-          git commit -m "Update Badr APK" || echo "No APK changes"
+          git commit -m "Update Badr APK" || echo "No changes"
           git push

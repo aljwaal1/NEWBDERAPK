@@ -23,7 +23,7 @@ public class MainActivity extends Activity {
   private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextSize(18);return b;}
 
   private void showHome(){
-    ScrollView sc=new ScrollView(this); content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(24,24,24,24); sc.addView(content);
+    ScrollView sc=new ScrollView(this); content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL); content.setPadding(24,24,24,24); sc.addView(content);
     content.addView(text("🌟 عالم بدر 🌟",30)); content.addView(text("تعلم والعب بدون إنترنت",18));
     addCategory("🦁 غابة الحيوانات",animals); addCategory("🍎 سوق بدر",food); addCategory("🚗 مدينة المركبات",transport); addCategory("🎨 حديقة الألوان",colors);
     Button letters=button("🔤 الحروف والأرقام"); letters.setOnClickListener(v->showLetters()); content.addView(letters);
@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
   private void addCategory(String title,String[][] data){Button b=button(title);b.setOnClickListener(v->showList(title,data));content.addView(b);}
 
   private void showList(String title,String[][] data){
-    LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,24,24,24);
+    LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);root.setPadding(24,24,24,24);
     Button back=button("رجوع");back.setOnClickListener(v->showHome());root.addView(back);root.addView(text(title,28));
     for(String[] x:data){root.addView(text(x[0]+"\n"+x[1]+" - "+x[2],25));}
     ScrollView sc=new ScrollView(this);sc.addView(root);setContentView(sc);

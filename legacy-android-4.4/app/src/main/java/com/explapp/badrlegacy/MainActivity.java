@@ -2,6 +2,8 @@ package com.explapp.badrlegacy;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
@@ -9,12 +11,13 @@ import android.widget.*;
 
 public class MainActivity extends Activity {
   private LinearLayout content;
+  private TextToSpeech tts;
   private final String[][] animals={{"🦁","أسد","Lion"},{"🐘","فيل","Elephant"},{"🐱","قطة","Cat"},{"🐶","كلب","Dog"}};
   private final String[][] food={{"🍎","تفاحة","Apple"},{"🍌","موز","Banana"},{"🍊","برتقال","Orange"},{"🥕","جزر","Carrot"}};
   private final String[][] transport={{"🚗","سيارة","Car"},{"🚌","حافلة","Bus"},{"🚆","قطار","Train"},{"✈️","طائرة","Airplane"}};
   private final String[][] colors={{"🔴","أحمر","Red"},{"🔵","أزرق","Blue"},{"🟢","أخضر","Green"},{"🟡","أصفر","Yellow"}};
 
-  @Override public void onCreate(Bundle b){super.onCreate(b); showHome();}
+  @Override public void onCreate(Bundle b){super.onCreate(b); tts=new TextToSpeech(this,new TextToSpeech.OnInitListener(){public void onInit(int s){if(s==TextToSpeech.SUCCESS)tts.setLanguage(Locale.US);}}); showHome();}
 
   private TextView text(String s,int size){TextView v=new TextView(this);v.setText(s);v.setTextSize(size);v.setTextColor(Color.rgb(35,35,35));v.setGravity(Gravity.CENTER);v.setPadding(12,14,12,14);return v;}
   private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextSize(18);return b;}
@@ -35,6 +38,9 @@ public class MainActivity extends Activity {
     for(String[] x:data){root.addView(text(x[0]+"\n"+x[1]+" - "+x[2],25));}
     ScrollView sc=new ScrollView(this);sc.addView(root);setContentView(sc);
   }
+
+  private void speak(String word){if(tts!=null)tts.speak(word,TextToSpeech.QUEUE_FLUSH,null);}
+  @Override protected void onDestroy(){if(tts!=null){tts.stop();tts.shutdown();}super.onDestroy();}
 
   private void showLetters(){
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,24,24,24);

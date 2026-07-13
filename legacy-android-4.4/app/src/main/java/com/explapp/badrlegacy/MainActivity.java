@@ -143,8 +143,11 @@ public final class MainActivity extends Activity {
         record.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){if(recordingId!=null)stopRecording(item);else startRecording(item);}});
         root.addView(record,top(8));
         if(voice.exists()){
-            Button play=button("تشغيل صوتي المسجل",0xff8b5bb5);play.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){playVoice(voice);}});
-            root.addView(play,top(7));
+            LinearLayout voiceActions=row();
+            Button play=button("تشغيل صوتي",0xff8b5bb5);play.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){playVoice(voice);}});
+            Button delete=button("حذف التسجيل",0xffc84f4f);delete.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){confirmDeleteVoice(item);}});
+            voiceActions.addView(play,weight());voiceActions.addView(gap(7));voiceActions.addView(delete,weight());
+            root.addView(voiceActions,top(7));
         }
         Button learnedButton=button(learned.contains(item.id)?"تم تعلم هذه الكلمة ✓":"تعلمت هذه الكلمة",0xffef9c28);
         learnedButton.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){markLearned(item);showItem(item);}});
@@ -258,11 +261,11 @@ public final class MainActivity extends Activity {
     private void markLearned(BadrData.Item item){if(learned.add(item.id)){stars++;saveProgress();toast("أحسنت! تعلمت كلمة جديدة");}}
 
     @android.annotation.SuppressLint("MissingPermission")
-    private void startRecording(BadrData.Item item){
+    private void startRecording(final BadrData.Item item){
         if(Build.VERSION.SDK_INT>=23&&checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){pendingRecordItem=item;requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},MIC_REQUEST);return;}
         releaseRecorder();
         try{
-            File file=voiceFile(item.id);recorder=new MediaRecorder();recorder.setAudioSource(MediaRecorder.AudioSource.MIC);recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);recorder.setAudioEncodingBitRate(64000);recorder.setAudioSamplingRate(22050);recorder.setOutputFile(file.getAbsolutePath());recorder.prepare();recorder.start();recordingId=item.id;recordingStartedAt=System.currentTimeMillis();toast("بدأ التسجيل: قل "+item.ar+" بوضوح");showItem(item);
+            File file=voiceFile(item.id);recorder=new MediaRecorder();recorder.setAudioSource(MediaRecorder.AudioSource.MIC);recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);recorder.setAudioEncodingBitRate(64000);recorder.setAudioSamplingRate(22050);recorder.setMaxDuration(15000);recorder.setMaxFileSize(1024L*1024L);recorder.setOutputFile(file.getAbsolutePath());recorder.setOnInfoListener(new MediaRecorder.OnInfoListener(){@Override public void onInfo(MediaRecorder mr,int what,int extra){if(recordingId!=null&&recordingId.equals(item.id))stopRecording(item);}});recorder.prepare();recorder.start();recordingId=item.id;recordingStartedAt=System.currentTimeMillis();toast("بدأ التسجيل: قل "+item.ar+" بوضوح");showItem(item);
         }catch(Exception e){releaseRecorder();recordingId=null;toast("تعذر بدء التسجيل على هذا الجهاز");}
     }
 
@@ -285,6 +288,12 @@ public final class MainActivity extends Activity {
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if(requestCode==MIC_REQUEST&&results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED&&pendingRecordItem!=null){BadrData.Item item=pendingRecordItem;pendingRecordItem=null;startRecording(item);}else if(requestCode==MIC_REQUEST){pendingRecordItem=null;toast("صلاحية الميكروفون مطلوبة للتسجيل");}
+    }
+
+    private void confirmDeleteVoice(final BadrData.Item item){
+        new AlertDialog.Builder(this).setTitle("حذف التسجيل؟").setMessage("سيُحذف تسجيل هذه الكلمة فقط، وسيبقى تقدم التعلم محفوظاً.")
+                .setPositiveButton("حذف",new DialogInterface.OnClickListener(){@Override public void onClick(DialogInterface dialog,int which){releasePlayer();if(voiceFile(item.id).delete())toast("تم حذف التسجيل");else toast("لا يوجد تسجيل للحذف");showItem(item);}})
+                .setNegativeButton("إلغاء",null).show();
     }
 
     private void confirmReset(){

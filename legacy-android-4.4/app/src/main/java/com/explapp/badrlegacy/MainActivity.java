@@ -17,7 +17,6 @@ import android.speech.tts.TextToSpeech;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -173,12 +172,14 @@ public final class MainActivity extends Activity {
         final Button listen=button(audio?"استمع ثم اختر الرسم":"استمع إلى الكلمة",0xff1687c3);
         listen.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){speak(audio?"أين "+target.ar:target.ar,new Locale("ar","JO"));}});
         root.addView(listen,top(8));
-        final GridLayout grid=new GridLayout(this);grid.setColumnCount(2);
+        final LinearLayout grid=new LinearLayout(this);grid.setOrientation(LinearLayout.VERTICAL);
         final boolean[] locked={false};
+        LinearLayout optionRow=null;int optionIndex=0;
         for(final BadrData.Item option:options){
+            if(optionIndex%2==0){optionRow=row();grid.addView(optionRow,new LinearLayout.LayoutParams(-1,audio?dp(158):dp(66)));}
             final View answer=audio?quizPicture(option):button(option.ar,option.color);
             answer.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){answerQuiz(root,v,locked,option,target,audio,numbers);}});
-            GridLayout.LayoutParams gp=new GridLayout.LayoutParams();gp.width=0;gp.height=audio?dp(150):dp(58);gp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);gp.setMargins(dp(4),dp(4),dp(4),dp(4));grid.addView(answer,gp);
+            LinearLayout.LayoutParams optionParams=new LinearLayout.LayoutParams(0,-1,1f);optionParams.setMargins(dp(4),dp(4),dp(4),dp(4));optionRow.addView(answer,optionParams);optionIndex++;
         }
         root.addView(grid,top(8));setPage(root,false);
         if(audio)listen.performClick();

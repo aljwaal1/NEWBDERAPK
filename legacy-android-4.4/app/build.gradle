@@ -6,8 +6,8 @@ android {
         applicationId 'com.explapp.badrlegacy'
         minSdk 19
         targetSdk 28
-        versionCode 5
-        versionName '3.1.0-legacy'
+        versionCode 6
+        versionName '3.2.0-legacy'
     }
     buildTypes { release { minifyEnabled false } }
     lintOptions { abortOnError true; disable 'ExpiredTargetSdkVersion' }

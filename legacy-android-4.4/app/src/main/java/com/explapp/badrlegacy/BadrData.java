@@ -82,6 +82,9 @@ public final class BadrData {
             i("n4","numbers","أربعة","Four","أربع كرات.",0xff66bb6a),
             i("n5","numbers","خمسة","Five","خمس أصابع.",0xffab47bc),
             i("n6","numbers","ستة","Six","ست زهور.",0xff26a69a),
+            i("n7","numbers","سبعة","Seven","سبعة أشياء.",0xff5c6bc0),
+            i("n8","numbers","ثمانية","Eight","ثمانية أشياء.",0xff26a69a),
+            i("n9","numbers","تسعة","Nine","تسعة أشياء.",0xffff7043),
             i("n10","numbers","عشرة","Ten","عشرة أشياء.",0xffec407a)
         ),
         new World("colors","حديقة الألوان","ألوان وأشكال جميلة",0xffdb4c91,

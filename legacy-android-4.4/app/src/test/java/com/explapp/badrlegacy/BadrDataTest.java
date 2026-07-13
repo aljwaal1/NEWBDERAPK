@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class BadrDataTest {
     @Test public void allLearningIdsAreUniqueAndComplete() {
         List<BadrData.Item> all=BadrData.allItems();
-        assertEquals(48,all.size());
+        assertEquals(51,all.size());
         Set<String> ids=new HashSet<String>();
         for(BadrData.Item item:all){
             assertTrue(ids.add(item.id));
@@ -23,7 +23,11 @@ public class BadrDataTest {
 
     @Test public void everyWorldHasEnoughOfflineContent() {
         assertEquals(6,BadrData.WORLDS.size());
-        for(BadrData.World world:BadrData.WORLDS)assertEquals(8,world.items.size());
+        for(BadrData.World world:BadrData.WORLDS){
+            assertTrue(world.items.size()>=8);
+            for(BadrData.Item item:world.items)assertEquals(world.id,item.world);
+        }
+        assertEquals(11,BadrData.WORLDS.get(4).items.size());
     }
 
     @Test public void storiesHaveCompletePageSequences() {

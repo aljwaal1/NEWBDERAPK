@@ -6,9 +6,10 @@ android {
         applicationId 'com.explapp.badrlegacy'
         minSdk 19
         targetSdk 28
-        versionCode 3
-        versionName '2.1.0-legacy'
+        versionCode 4
+        versionName '3.0.0-legacy'
     }
     buildTypes { release { minifyEnabled false } }
+    lintOptions { abortOnError true; disable 'ExpiredTargetSdkVersion' }
 }
 dependencies { testImplementation 'junit:junit:4.13.2' }

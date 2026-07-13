@@ -274,6 +274,6 @@ public final class MainActivity extends Activity {
     private void releaseRecorder(){if(recorder!=null){try{recorder.reset();}catch(Exception ignored){}recorder.release();recorder=null;}}
     private void releasePlayer(){if(player!=null){try{player.stop();}catch(Exception ignored){}player.release();player=null;}}
 
-    @Override public void onBackPressed(){if(currentScreen==0){super.onBackPressed();return;}if(currentScreen==2||currentScreen==1)showWorlds();else if(currentScreen==3&&currentWorld!=null)showWorld(currentWorld);else showHome();}
+    @Override public void onBackPressed(){if(currentScreen==0){super.onBackPressed();return;}if(currentScreen==1)showHome();else if(currentScreen==2)showWorlds();else if(currentScreen==3&&currentWorld!=null)showWorld(currentWorld);else showHome();}
     @Override protected void onDestroy(){releaseRecorder();releasePlayer();if(tts!=null){tts.stop();tts.shutdown();}super.onDestroy();}
 }

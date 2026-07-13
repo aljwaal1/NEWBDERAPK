@@ -1,12 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
+        android:name=".SoundApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="عالم بدر"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".SoundMainActivity"
+            android:name=".MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="true">
             <intent-filter>

@@ -1,5 +1,14 @@
 plugins { id 'com.android.application' }
-android { namespace 'com.explapp.badrlegacy'; compileSdk 33
- defaultConfig { applicationId 'com.explapp.badrlegacy'; minSdk 19; targetSdk 28; versionCode 1; versionName '1.0.0-legacy' }
- buildTypes { release { minifyEnabled false } }
+android {
+    namespace 'com.explapp.badrlegacy'
+    compileSdk 33
+    defaultConfig {
+        applicationId 'com.explapp.badrlegacy'
+        minSdk 19
+        targetSdk 28
+        versionCode 2
+        versionName '2.0.0-legacy'
+    }
+    buildTypes { release { minifyEnabled false } }
 }
+dependencies { testImplementation 'junit:junit:4.13.2' }

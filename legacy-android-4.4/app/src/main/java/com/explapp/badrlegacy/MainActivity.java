@@ -19,6 +19,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +44,7 @@ public final class MainActivity extends Activity {
     private MediaPlayer player;
     private BadrData.Item pendingRecordItem;
     private String recordingId;
+    private long recordingStartedAt;
     private int stars,games;
     private int storyIndex,storyPage;
     private int currentScreen;
@@ -61,6 +63,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showHome(){
+        abandonRecording();
         currentScreen=0;currentWorld=null;
         LinearLayout root=page();
         LinearLayout stats=row();
@@ -87,6 +90,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showWorlds(){
+        abandonRecording();
         currentScreen=1;currentWorld=null;
         LinearLayout root=page();root.addView(section("العوالم التعليمية"),match());
         for(final BadrData.World world:BadrData.WORLDS){
@@ -100,6 +104,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showWorld(final BadrData.World world){
+        abandonRecording();
         currentScreen=2;currentWorld=world;
         LinearLayout root=page();
         Button back=smallButton("رجوع إلى العوالم",0xff607d8b);back.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){showWorlds();}});root.addView(back,match());
@@ -142,6 +147,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showGames(){
+        abandonRecording();
         currentScreen=4;currentWorld=null;
         LinearLayout root=page();root.addView(section("ألعاب بدر"),match());
         TextView intro=text("كل إجابة صحيحة تمنحك ثلاث نجوم",17,0xff35566b,true);intro.setGravity(Gravity.CENTER);root.addView(intro,top(5));
@@ -152,6 +158,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showQuiz(final boolean audio,final boolean numbers){
+        abandonRecording();
         currentScreen=5;
         final List<BadrData.Item> pool=new ArrayList<BadrData.Item>();
         if(numbers)pool.addAll(findWorld("numbers").items);else pool.addAll(BadrData.allItems());
@@ -177,6 +184,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showStories(){
+        abandonRecording();
         currentScreen=6;currentWorld=null;
         final BadrData.Story story=BadrData.STORIES.get(storyIndex);
         LinearLayout root=page();root.addView(section("قصص بدر"),match());
@@ -195,8 +203,11 @@ public final class MainActivity extends Activity {
     }
 
     private void showProgress(){
+        abandonRecording();
         currentScreen=7;currentWorld=null;
         LinearLayout root=page();root.addView(section("تقدم الطفل"),match());
+        TextView completion=text("أنجزت "+learned.size()+" من "+BadrData.allItems().size()+" بطاقة تعليمية",17,0xff123552,true);completion.setGravity(Gravity.CENTER);root.addView(completion,top(12));
+        ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(BadrData.allItems().size());progress.setProgress(learned.size());progress.setMinimumHeight(dp(18));root.addView(progress,top(6));
         root.addView(progressCard("النجوم التي جمعتها",stars,0xffffb22e),top(8));
         root.addView(progressCard("الكلمات التي تعلمتها",learned.size(),0xff2e9d58),top(8));
         root.addView(progressCard("الألعاب الناجحة",games,0xff1687c3),top(8));
@@ -220,22 +231,23 @@ public final class MainActivity extends Activity {
         if(Build.VERSION.SDK_INT>=23&&checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){pendingRecordItem=item;requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},MIC_REQUEST);return;}
         releaseRecorder();
         try{
-            File file=voiceFile(item.id);recorder=new MediaRecorder();recorder.setAudioSource(MediaRecorder.AudioSource.MIC);recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);recorder.setAudioEncodingBitRate(64000);recorder.setAudioSamplingRate(22050);recorder.setOutputFile(file.getAbsolutePath());recorder.prepare();recorder.start();recordingId=item.id;toast("بدأ التسجيل: قل "+item.ar+" بوضوح");showItem(item);
+            File file=voiceFile(item.id);recorder=new MediaRecorder();recorder.setAudioSource(MediaRecorder.AudioSource.MIC);recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);recorder.setAudioEncodingBitRate(64000);recorder.setAudioSamplingRate(22050);recorder.setOutputFile(file.getAbsolutePath());recorder.prepare();recorder.start();recordingId=item.id;recordingStartedAt=System.currentTimeMillis();toast("بدأ التسجيل: قل "+item.ar+" بوضوح");showItem(item);
         }catch(Exception e){releaseRecorder();recordingId=null;toast("تعذر بدء التسجيل على هذا الجهاز");}
     }
 
     private void stopRecording(BadrData.Item item){
-        try{if(recorder!=null)recorder.stop();stars+=2;saveProgress();toast("تم حفظ صوتك +2 نجوم");}catch(Exception e){voiceFile(item.id).delete();toast("التسجيل قصير جدًا، حاول مرة أخرى");}
+        boolean longEnough=System.currentTimeMillis()-recordingStartedAt>=700;
+        try{if(recorder!=null)recorder.stop();if(!longEnough)throw new IllegalStateException("short recording");stars+=2;saveProgress();toast("تم حفظ صوتك +2 نجوم");}catch(Exception e){voiceFile(item.id).delete();toast("التسجيل قصير جدًا، حاول مرة أخرى");}
         releaseRecorder();recordingId=null;showItem(item);
     }
 
     private void playVoice(File file){
-        releasePlayer();try{player=new MediaPlayer();player.setDataSource(file.getAbsolutePath());player.prepare();player.start();}catch(Exception e){releasePlayer();toast("تعذر تشغيل التسجيل");}
+        releasePlayer();try{player=new MediaPlayer();player.setDataSource(file.getAbsolutePath());player.setOnCompletionListener(new MediaPlayer.OnCompletionListener(){@Override public void onCompletion(MediaPlayer mp){releasePlayer();}});player.prepare();player.start();}catch(Exception e){releasePlayer();toast("تعذر تشغيل التسجيل");}
     }
 
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
         super.onRequestPermissionsResult(requestCode,permissions,results);
-        if(requestCode==MIC_REQUEST&&results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED&&pendingRecordItem!=null){BadrData.Item item=pendingRecordItem;pendingRecordItem=null;startRecording(item);}else if(requestCode==MIC_REQUEST)toast("صلاحية الميكروفون مطلوبة للتسجيل");
+        if(requestCode==MIC_REQUEST&&results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED&&pendingRecordItem!=null){BadrData.Item item=pendingRecordItem;pendingRecordItem=null;startRecording(item);}else if(requestCode==MIC_REQUEST){pendingRecordItem=null;toast("صلاحية الميكروفون مطلوبة للتسجيل");}
     }
 
     private void confirmReset(){
@@ -273,7 +285,9 @@ public final class MainActivity extends Activity {
     private void saveProgress(){getSharedPreferences(PREFS,MODE_PRIVATE).edit().putInt("stars",stars).putInt("games",games).putStringSet("learned",new HashSet<String>(learned)).apply();}
     private void releaseRecorder(){if(recorder!=null){try{recorder.reset();}catch(Exception ignored){}recorder.release();recorder=null;}}
     private void releasePlayer(){if(player!=null){try{player.stop();}catch(Exception ignored){}player.release();player=null;}}
+    private void abandonRecording(){if(recordingId==null)return;releaseRecorder();voiceFile(recordingId).delete();recordingId=null;recordingStartedAt=0;toast("تم إلغاء التسجيل غير المحفوظ");}
 
     @Override public void onBackPressed(){if(currentScreen==0){super.onBackPressed();return;}if(currentScreen==1)showHome();else if(currentScreen==2)showWorlds();else if(currentScreen==3&&currentWorld!=null)showWorld(currentWorld);else showHome();}
+    @Override protected void onPause(){abandonRecording();releasePlayer();if(tts!=null)tts.stop();super.onPause();}
     @Override protected void onDestroy(){releaseRecorder();releasePlayer();if(tts!=null){tts.stop();tts.shutdown();}super.onDestroy();}
 }

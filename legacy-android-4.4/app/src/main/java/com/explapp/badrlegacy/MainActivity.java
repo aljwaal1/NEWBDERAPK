@@ -7,7 +7,14 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -287,14 +294,19 @@ public final class MainActivity extends Activity {
     private LinearLayout nav(){
         LinearLayout nav=row();
         String[] labels={"الرئيسية","العوالم","الألعاب","القصص","تقدمي"};
-        int[] icons={android.R.drawable.ic_menu_view,android.R.drawable.ic_menu_mapmode,android.R.drawable.ic_menu_edit,android.R.drawable.ic_menu_agenda,android.R.drawable.star_big_on};
         int active=currentScreen==0?0:currentScreen==1?1:currentScreen==4?2:currentScreen==6?3:4;
-        nav.setPadding(dp(3),dp(3),dp(3),dp(3));nav.setBackgroundColor(Color.WHITE);
-        for(int i=0;i<labels.length;i++){final int index=i;Button b=new Button(this);b.setText(labels[i]);b.setTextSize(10);b.setTextColor(i==active?0xff1687c3:0xff526b78);b.setTypeface(Typeface.DEFAULT,i==active?Typeface.BOLD:Typeface.NORMAL);b.setAllCaps(false);b.setGravity(Gravity.CENTER);b.setCompoundDrawablesWithIntrinsicBounds(0,icons[i],0,0);b.setCompoundDrawablePadding(dp(1));b.setBackgroundColor(Color.TRANSPARENT);b.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){if(index==0)showHome();else if(index==1)showWorlds();else if(index==2)showGames();else if(index==3)showStories();else showProgress();}});nav.addView(b,new LinearLayout.LayoutParams(0,dp(58),1f));}
+        nav.setPadding(dp(4),dp(5),dp(4),dp(5));nav.setBackgroundColor(Color.WHITE);
+        if(Build.VERSION.SDK_INT>=21)nav.setElevation(dp(7));
+        for(int i=0;i<labels.length;i++){
+            final int index=i;boolean selected=i==active;Button b=new Button(this);b.setText(labels[i]);b.setTextSize(10);b.setTextColor(selected?0xff075f91:0xff526b78);b.setTypeface(Typeface.DEFAULT,selected?Typeface.BOLD:Typeface.NORMAL);b.setAllCaps(false);b.setGravity(Gravity.CENTER);b.setPadding(dp(1),dp(2),dp(1),dp(2));
+            Drawable glyph=new NavGlyph(i,selected?0xff0c83bd:0xff718792,dp(24));b.setCompoundDrawables(null,glyph,null,null);b.setCompoundDrawablePadding(dp(2));b.setBackground(selected?round(0xffdff4ff,14):round(Color.TRANSPARENT,14));
+            b.setContentDescription(labels[i]+(selected?"، الصفحة الحالية":""));
+            b.setOnClickListener(new View.OnClickListener(){@Override public void onClick(View v){if(index==0)showHome();else if(index==1)showWorlds();else if(index==2)showGames();else if(index==3)showStories();else showProgress();}});nav.addView(b,new LinearLayout.LayoutParams(0,dp(60),1f));
+        }
         return nav;
     }
 
-    private void setPage(LinearLayout body,boolean mainNavigation){LinearLayout shell=new LinearLayout(this);shell.setOrientation(LinearLayout.VERTICAL);shell.setBackgroundColor(0xffeaf7fb);ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(body);shell.addView(scroll,new LinearLayout.LayoutParams(-1,0,1f));if(mainNavigation)shell.addView(nav(),new LinearLayout.LayoutParams(-1,dp(64)));setContentView(shell);body.setAlpha(0f);body.setTranslationY(dp(7));body.animate().alpha(1f).translationY(0).setDuration(170).start();}
+    private void setPage(LinearLayout body,boolean mainNavigation){LinearLayout shell=new LinearLayout(this);shell.setOrientation(LinearLayout.VERTICAL);shell.setBackgroundColor(0xffeaf7fb);ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);scroll.addView(body);shell.addView(scroll,new LinearLayout.LayoutParams(-1,0,1f));if(mainNavigation)shell.addView(nav(),new LinearLayout.LayoutParams(-1,dp(70)));setContentView(shell);body.setAlpha(0f);body.setTranslationY(dp(7));body.animate().alpha(1f).translationY(0).setDuration(180).start();}
     private LinearLayout page(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(12),dp(12),dp(12),dp(20));if(Build.VERSION.SDK_INT>=17)root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return root;}
     private LinearLayout row(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setGravity(Gravity.CENTER);return r;}
     private TextView section(String value){TextView v=text(value,25,Color.WHITE,true);v.setGravity(Gravity.CENTER);v.setPadding(dp(10),dp(12),dp(10),dp(12));v.setBackground(round(0xff123b65,18));return v;}
@@ -319,6 +331,19 @@ public final class MainActivity extends Activity {
     private void releaseRecorder(){if(recorder!=null){try{recorder.reset();}catch(Exception ignored){}recorder.release();recorder=null;}}
     private void releasePlayer(){if(player!=null){try{player.stop();}catch(Exception ignored){}player.release();player=null;}}
     private void abandonRecording(){if(recordingId==null)return;releaseRecorder();voiceFile(recordingId).delete();recordingId=null;recordingStartedAt=0;toast("تم إلغاء التسجيل غير المحفوظ");}
+
+    private static final class NavGlyph extends Drawable{
+        private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path path=new Path();private final int type,size;
+        NavGlyph(int type,int color,int size){this.type=type;this.size=size;p.setColor(color);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.085f));p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);setBounds(0,0,size,size);}
+        @Override public void draw(Canvas c){RectF b=new RectF(getBounds());float l=b.left,t=b.top,w=b.width(),h=b.height();path.reset();p.setStyle(Paint.Style.STROKE);
+            if(type==0){c.drawLine(l+w*.18f,t+h*.48f,l+w*.5f,t+h*.17f,p);c.drawLine(l+w*.5f,t+h*.17f,l+w*.82f,t+h*.48f,p);c.drawRoundRect(new RectF(l+w*.25f,t+h*.43f,l+w*.75f,t+h*.86f),w*.06f,w*.06f,p);c.drawLine(l+w*.46f,t+h*.86f,l+w*.46f,t+h*.63f,p);c.drawLine(l+w*.46f,t+h*.63f,l+w*.62f,t+h*.63f,p);c.drawLine(l+w*.62f,t+h*.63f,l+w*.62f,t+h*.86f,p);}
+            else if(type==1){c.drawRoundRect(new RectF(l+w*.12f,t+h*.18f,l+w*.45f,t+h*.82f),w*.05f,w*.05f,p);c.drawRoundRect(new RectF(l+w*.55f,t+h*.18f,l+w*.88f,t+h*.82f),w*.05f,w*.05f,p);c.drawLine(l+w*.5f,t+h*.25f,l+w*.5f,t+h*.76f,p);c.drawLine(l+w*.21f,t+h*.34f,l+w*.36f,t+h*.34f,p);c.drawLine(l+w*.64f,t+h*.34f,l+w*.79f,t+h*.34f,p);}
+            else if(type==2){c.drawRoundRect(new RectF(l+w*.13f,t+h*.27f,l+w*.87f,t+h*.78f),w*.14f,w*.14f,p);c.drawLine(l+w*.30f,t+h*.52f,l+w*.46f,t+h*.52f,p);c.drawLine(l+w*.38f,t+h*.44f,l+w*.38f,t+h*.60f,p);c.drawCircle(l+w*.65f,t+h*.46f,w*.035f,p);c.drawCircle(l+w*.75f,t+h*.58f,w*.035f,p);c.drawLine(l+w*.35f,t+h*.27f,l+w*.43f,t+h*.14f,p);c.drawLine(l+w*.65f,t+h*.27f,l+w*.57f,t+h*.14f,p);}
+            else if(type==3){path.moveTo(l+w*.14f,t+h*.22f);path.quadTo(l+w*.36f,t+h*.15f,l+w*.5f,t+h*.31f);path.quadTo(l+w*.64f,t+h*.15f,l+w*.86f,t+h*.22f);path.lineTo(l+w*.86f,t+h*.78f);path.quadTo(l+w*.65f,t+h*.72f,l+w*.5f,t+h*.86f);path.quadTo(l+w*.35f,t+h*.72f,l+w*.14f,t+h*.78f);path.close();c.drawPath(path,p);c.drawLine(l+w*.5f,t+h*.31f,l+w*.5f,t+h*.86f,p);}
+            else{for(int i=0;i<10;i++){double a=-Math.PI/2+i*Math.PI/5;float r=i%2==0?w*.38f:w*.18f,x=l+w*.5f+(float)Math.cos(a)*r,y=t+h*.5f+(float)Math.sin(a)*r;if(i==0)path.moveTo(x,y);else path.lineTo(x,y);}path.close();c.drawPath(path,p);c.drawCircle(l+w*.5f,t+h*.5f,w*.07f,p);}
+        }
+        @Override public void setAlpha(int a){p.setAlpha(a);}@Override public void setColorFilter(ColorFilter f){p.setColorFilter(f);}@Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}@Override public int getIntrinsicWidth(){return size;}@Override public int getIntrinsicHeight(){return size;}
+    }
 
     @Override public void onBackPressed(){if(currentScreen==0){super.onBackPressed();return;}if(currentScreen==1)showHome();else if(currentScreen==2)showWorlds();else if(currentScreen==3&&currentWorld!=null)showWorld(currentWorld);else showHome();}
     @Override protected void onPause(){abandonRecording();releasePlayer();if(tts!=null)tts.stop();super.onPause();}
